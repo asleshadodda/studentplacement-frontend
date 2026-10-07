@@ -1,25 +1,143 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import "./Dashboard.css";
 
+const STUDENTS_API = "http://localhost:8080/students";
+const COMPANIES_API = "http://localhost:8080/companies";
+const JOBS_API = "http://localhost:8080/jobs";
+
 function Dashboard() {
-  const [activeMenu, setActiveMenu] = useState("Dashboard");
   const navigate = useNavigate();
 
-  const menuItems = [
-    { name: "Dashboard", icon: "▦" },
-    { name: "Students", icon: "♙" },
-    { name: "Companies", icon: "▣" },
-    { name: "Jobs", icon: "◉" },
-    { name: "Applications", icon: "☷" },
-    { name: "Placements", icon: "✓" }
-  ];
+  const [activeMenu, setActiveMenu] = useState("Dashboard");
+
+  const [students, setStudents] = useState([]);
+  const [companies, setCompanies] = useState([]);
+  const [jobs, setJobs] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+
+  // -----------------------------------------
+  // FETCH DASHBOARD DATA
+  // -----------------------------------------
+  const fetchDashboardData = async () => {
+    try {
+      // Students
+      const studentsResponse = await axios.get(STUDENTS_API);
+
+      if (Array.isArray(studentsResponse.data)) {
+        setStudents(studentsResponse.data);
+      }
+
+      // Companies
+      try {
+        const companiesResponse = await axios.get(COMPANIES_API);
+
+        if (Array.isArray(companiesResponse.data)) {
+          setCompanies(companiesResponse.data);
+        }
+      } catch (error) {
+        // Companies API may not exist yet
+        setCompanies([]);
+      }
+
+      // Jobs
+      try {
+        const jobsResponse = await axios.get(JOBS_API);
+
+        if (Array.isArray(jobsResponse.data)) {
+          setJobs(jobsResponse.data);
+        }
+      } catch (error) {
+        // Jobs API may not exist yet
+        setJobs([]);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      setLoading(false);
+    }
+  };
+
+  // -----------------------------------------
+  // AUTOMATIC REFRESH
+  // -----------------------------------------
+  useEffect(() => {
+    fetchDashboardData();
+
+    const interval = setInterval(() => {
+      fetchDashboardData();
+    }, 3000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+
+  // -----------------------------------------
+  // CALCULATIONS
+  // -----------------------------------------
+
+  const totalStudents = students.length;
+
+  const placedStudents = students.filter((student) => {
+    if (!student.status) {
+      return false;
+    }
+
+    return student.status.toString().trim().toLowerCase() === "placed";
+  }).length;
+
+  const notPlacedStudents = totalStudents - placedStudents;
+
+  const totalCompanies = companies.length;
+
+  const activeJobs = jobs.filter((job) => {
+    if (!job.status) {
+      return true;
+    }
+
+    const status = job.status.toString().trim().toLowerCase();
+
+    return (
+      status === "active" ||
+      status === "open" ||
+      status === "opened"
+    );
+  }).length;
+
+  // -----------------------------------------
+  // MENU
+  // -----------------------------------------
 
   const handleMenuClick = (name) => {
     setActiveMenu(name);
 
+    if (name === "Dashboard") {
+      navigate("/dashboard");
+    }
+
     if (name === "Students") {
       navigate("/students");
+    }
+
+    // Keep these ready for future modules
+    if (name === "Companies") {
+      console.log("Companies module coming soon");
+    }
+
+    if (name === "Jobs") {
+      console.log("Jobs module coming soon");
+    }
+
+    if (name === "Applications") {
+      console.log("Applications module coming soon");
+    }
+
+    if (name === "Placements") {
+      console.log("Placements module coming soon");
     }
   };
 
@@ -29,175 +147,572 @@ function Dashboard() {
 
   return (
     <div className="dashboard-page">
+
+      {/* ================= SIDEBAR ================= */}
+
       <aside className="sidebar">
-        <div className="sidebar-brand">
-          <div className="sidebar-logo">🎓</div>
-          <div>
-            <h2>Placement</h2>
-            <span>Management System</span>
+
+        <div className="sidebar-logo">
+
+          <div className="sidebar-logo-icon">
+            🎓
           </div>
+
+          <div className="sidebar-logo-text">
+            <h2>Placement</h2>
+            <span>Management</span>
+          </div>
+
         </div>
 
         <nav className="sidebar-menu">
-          <p className="menu-title">MAIN MENU</p>
 
-          {menuItems.map((item) => (
-            <button
-              key={item.name}
-              className={`menu-item ${
-                activeMenu === item.name ? "active" : ""
-              }`}
-              onClick={() => handleMenuClick(item.name)}
-            >
-              <span className="menu-icon">{item.icon}</span>
-              <span>{item.name}</span>
-            </button>
-          ))}
+          <div
+            className={`menu-item ${
+              activeMenu === "Dashboard" ? "active" : ""
+            }`}
+            onClick={() => handleMenuClick("Dashboard")}
+          >
+            <span className="menu-icon">▦</span>
+            <span>Dashboard</span>
+          </div>
+
+          <div
+            className={`menu-item ${
+              activeMenu === "Students" ? "active" : ""
+            }`}
+            onClick={() => handleMenuClick("Students")}
+          >
+            <span className="menu-icon">♙</span>
+            <span>Students</span>
+          </div>
+
+          <div
+            className={`menu-item ${
+              activeMenu === "Companies" ? "active" : ""
+            }`}
+            onClick={() => handleMenuClick("Companies")}
+          >
+            <span className="menu-icon">▣</span>
+            <span>Companies</span>
+          </div>
+
+          <div
+            className={`menu-item ${
+              activeMenu === "Jobs" ? "active" : ""
+            }`}
+            onClick={() => handleMenuClick("Jobs")}
+          >
+            <span className="menu-icon">◉</span>
+            <span>Jobs</span>
+          </div>
+
+          <div
+            className={`menu-item ${
+              activeMenu === "Applications" ? "active" : ""
+            }`}
+            onClick={() => handleMenuClick("Applications")}
+          >
+            <span className="menu-icon">☑</span>
+            <span>Applications</span>
+          </div>
+
+          <div
+            className={`menu-item ${
+              activeMenu === "Placements" ? "active" : ""
+            }`}
+            onClick={() => handleMenuClick("Placements")}
+          >
+            <span className="menu-icon">✓</span>
+            <span>Placements</span>
+          </div>
+
         </nav>
 
         <div className="sidebar-bottom">
-          <button className="menu-item">
-            <span className="menu-icon">⚙</span>
-            <span>Settings</span>
-          </button>
 
-          <button className="menu-item logout-button" onClick={handleLogout}>
+          <div
+            className="menu-item logout-item"
+            onClick={handleLogout}
+          >
             <span className="menu-icon">↪</span>
             <span>Logout</span>
-          </button>
+          </div>
+
         </div>
+
       </aside>
 
+
+      {/* ================= MAIN ================= */}
+
       <main className="dashboard-main">
+
+        {/* HEADER */}
+
         <header className="dashboard-header">
-          <div>
+
+          <div className="header-title">
+
+            <div className="breadcrumb">
+              Placement Management / Dashboard
+            </div>
+
             <h1>Dashboard</h1>
-            <p>Welcome back! Here's what's happening today.</p>
+
+            <p>
+              Welcome back! Here's an overview of your placement activities.
+            </p>
+
           </div>
 
           <div className="header-right">
-            <button className="notification-button">🔔</button>
+
+            <div className="live-indicator">
+              <span className="live-dot"></span>
+              Live
+            </div>
+
+            <div className="notification">
+              🔔
+            </div>
 
             <div className="profile">
-              <div className="profile-avatar">A</div>
-              <div>
+
+              <div className="profile-avatar">
+                A
+              </div>
+
+              <div className="profile-details">
                 <strong>Admin</strong>
                 <span>Administrator</span>
               </div>
+
             </div>
+
           </div>
+
         </header>
 
+
+        {/* ================= STATS ================= */}
+
         <section className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon students-icon">♙</div>
-            <div>
-              <span>Total Students</span>
-              <h2>0</h2>
-              <small>Registered students</small>
-            </div>
-          </div>
+
+          {/* STUDENTS */}
 
           <div className="stat-card">
-            <div className="stat-icon companies-icon">▣</div>
-            <div>
-              <span>Companies</span>
-              <h2>0</h2>
-              <small>Partner companies</small>
+
+            <div className="stat-top">
+
+              <div className="stat-icon student-stat-icon">
+                🎓
+              </div>
+
+              <span className="stat-label live-label">
+                LIVE
+              </span>
+
             </div>
+
+            <div className="stat-title">
+              Total Students
+            </div>
+
+            <div className="stat-number">
+
+              {loading ? (
+                <span className="loading-number">...</span>
+              ) : (
+                totalStudents
+              )}
+
+            </div>
+
+            <div className="stat-description">
+              Registered students
+            </div>
+
           </div>
 
-          <div className="stat-card">
-            <div className="stat-icon jobs-icon">◉</div>
-            <div>
-              <span>Active Jobs</span>
-              <h2>0</h2>
-              <small>Current openings</small>
-            </div>
-          </div>
+
+          {/* COMPANIES */}
 
           <div className="stat-card">
-            <div className="stat-icon placement-icon">✓</div>
-            <div>
-              <span>Placements</span>
-              <h2>0</h2>
-              <small>Students placed</small>
+
+            <div className="stat-top">
+
+              <div className="stat-icon company-stat-icon">
+                🏢
+              </div>
+
+              <span className="stat-label">
+                LIVE
+              </span>
+
             </div>
+
+            <div className="stat-title">
+              Companies
+            </div>
+
+            <div className="stat-number">
+
+              {loading ? (
+                <span className="loading-number">...</span>
+              ) : (
+                totalCompanies
+              )}
+
+            </div>
+
+            <div className="stat-description">
+              Partner companies
+            </div>
+
           </div>
+
+
+          {/* JOBS */}
+
+          <div className="stat-card">
+
+            <div className="stat-top">
+
+              <div className="stat-icon job-stat-icon">
+                💼
+              </div>
+
+              <span className="stat-label">
+                LIVE
+              </span>
+
+            </div>
+
+            <div className="stat-title">
+              Active Jobs
+            </div>
+
+            <div className="stat-number">
+
+              {loading ? (
+                <span className="loading-number">...</span>
+              ) : (
+                activeJobs
+              )}
+
+            </div>
+
+            <div className="stat-description">
+              Current openings
+            </div>
+
+          </div>
+
+
+          {/* PLACEMENTS */}
+
+          <div className="stat-card">
+
+            <div className="stat-top">
+
+              <div className="stat-icon placement-stat-icon">
+                ✓
+              </div>
+
+              <span className="stat-label success-label">
+                LIVE
+              </span>
+
+            </div>
+
+            <div className="stat-title">
+              Placements
+            </div>
+
+            <div className="stat-number">
+
+              {loading ? (
+                <span className="loading-number">...</span>
+              ) : (
+                placedStudents
+              )}
+
+            </div>
+
+            <div className="stat-description">
+              Students placed
+            </div>
+
+          </div>
+
         </section>
 
-        <section className="dashboard-grid">
-          <div className="dashboard-card">
-            <div className="card-header">
-              <div>
-                <h2>Placement Overview</h2>
-                <p>Current placement statistics</p>
-              </div>
-            </div>
 
-            <div className="empty-chart">
-              <div className="chart-icon">📊</div>
-              <h3>No placement data yet</h3>
+        {/* ================= PLACEMENT OVERVIEW ================= */}
+
+        <section className="dashboard-section">
+
+          <div className="section-header">
+
+            <div>
+
+              <h2>
+                Placement Overview
+              </h2>
+
               <p>
-                Placement statistics will appear here once students
-                and companies are added.
+                Current student placement status
               </p>
+
             </div>
+
+            <div className="refresh-status">
+              <span className="refresh-dot"></span>
+              Updates automatically
+            </div>
+
           </div>
 
-          <div className="dashboard-card">
-            <div className="card-header">
-              <div>
-                <h2>Quick Actions</h2>
-                <p>Common activities</p>
+
+          <div className="overview-grid">
+
+            {/* TOTAL */}
+
+            <div className="overview-card">
+
+              <div className="overview-icon">
+                👨‍🎓
               </div>
+
+              <div className="overview-info">
+
+                <span>
+                  Total Students
+                </span>
+
+                <strong>
+                  {totalStudents}
+                </strong>
+
+                <small>
+                  Registered in system
+                </small>
+
+              </div>
+
             </div>
 
-            <div className="quick-actions">
-              <button
-                onClick={() => navigate("/students")}
-                className="quick-action"
-              >
-                <span>♙</span>
-                <div>
-                  <strong>Add Student</strong>
-                  <small>Register a new student</small>
-                </div>
-              </button>
 
-              <button className="quick-action">
-                <span>▣</span>
-                <div>
-                  <strong>Add Company</strong>
-                  <small>Register a company</small>
-                </div>
-              </button>
+            {/* PLACED */}
 
-              <button className="quick-action">
-                <span>◉</span>
-                <div>
-                  <strong>Post Job</strong>
-                  <small>Create a job opening</small>
-                </div>
-              </button>
+            <div className="overview-card">
+
+              <div className="overview-icon placed-icon">
+                ✓
+              </div>
+
+              <div className="overview-info">
+
+                <span>
+                  Placed Students
+                </span>
+
+                <strong>
+                  {placedStudents}
+                </strong>
+
+                <small>
+                  Successfully placed
+                </small>
+
+              </div>
+
             </div>
+
+
+            {/* NOT PLACED */}
+
+            <div className="overview-card">
+
+              <div className="overview-icon pending-icon">
+                ⏳
+              </div>
+
+              <div className="overview-info">
+
+                <span>
+                  Not Yet Placed
+                </span>
+
+                <strong>
+                  {notPlacedStudents}
+                </strong>
+
+                <small>
+                  Looking for opportunities
+                </small>
+
+              </div>
+
+            </div>
+
           </div>
+
+
+          {/* PROGRESS */}
+
+          <div className="placement-progress">
+
+            <div className="progress-header">
+
+              <span>
+                Placement Progress
+              </span>
+
+              <strong>
+                {totalStudents > 0
+                  ? Math.round(
+                      (placedStudents / totalStudents) * 100
+                    )
+                  : 0}
+                %
+              </strong>
+
+            </div>
+
+            <div className="progress-bar">
+
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${
+                    totalStudents > 0
+                      ? (placedStudents / totalStudents) * 100
+                      : 0
+                  }%`,
+                }}
+              ></div>
+
+            </div>
+
+          </div>
+
         </section>
 
-        <section className="dashboard-card recent-section">
-          <div className="card-header">
+
+        {/* ================= QUICK ACTIONS ================= */}
+
+        <section className="dashboard-section">
+
+          <div className="section-header">
+
             <div>
-              <h2>Recent Activity</h2>
-              <p>Latest placement activities</p>
+
+              <h2>
+                Quick Actions
+              </h2>
+
+              <p>
+                Manage your placement activities
+              </p>
+
             </div>
+
           </div>
 
-          <div className="empty-activity">
-            <span>◷</span>
-            <p>No recent activity</p>
+
+          <div className="quick-actions-grid">
+
+            <button
+              className="quick-action-card"
+              onClick={() => navigate("/students")}
+            >
+
+              <div className="quick-action-icon">
+                🎓
+              </div>
+
+              <div className="quick-action-content">
+
+                <strong>
+                  Manage Students
+                </strong>
+
+                <span>
+                  Add, edit or remove students
+                </span>
+
+              </div>
+
+              <span className="arrow">
+                →
+              </span>
+
+            </button>
+
+
+            <button
+              className="quick-action-card"
+              onClick={() => handleMenuClick("Companies")}
+            >
+
+              <div className="quick-action-icon">
+                🏢
+              </div>
+
+              <div className="quick-action-content">
+
+                <strong>
+                  Manage Companies
+                </strong>
+
+                <span>
+                  View partner companies
+                </span>
+
+              </div>
+
+              <span className="arrow">
+                →
+              </span>
+
+            </button>
+
+
+            <button
+              className="quick-action-card"
+              onClick={() => handleMenuClick("Jobs")}
+            >
+
+              <div className="quick-action-icon">
+                💼
+              </div>
+
+              <div className="quick-action-content">
+
+                <strong>
+                  Manage Jobs
+                </strong>
+
+                <span>
+                  View current job openings
+                </span>
+
+              </div>
+
+              <span className="arrow">
+                →
+              </span>
+
+            </button>
+
           </div>
+
         </section>
+
       </main>
+
     </div>
   );
 }
